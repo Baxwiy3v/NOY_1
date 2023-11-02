@@ -12,7 +12,7 @@ CREATE TABLE Users (
 );
 
 
-i
+
 CREATE TABLE Artists (
     ArtistID INT PRIMARY KEY IDENTITY,
     Name VARCHAR(255) NOT NULL,
@@ -91,6 +91,94 @@ SELECT
 FROM Musics M
 LEFT JOIN Categories C ON M.CategoryID = C.CategoryID
 LEFT JOIN Artists A ON M.ArtistID = A.ArtistID;
+
+
+CREATE PROCEDURE usp_CreateMusic
+    @Name VARCHAR(255),
+    @DurationInSeconds INT,
+    @CategoryID INT,
+    @ArtistID INT
+AS
+BEGIN
+    INSERT INTO Musics (Name, DurationInSeconds, CategoryID, ArtistID)
+    VALUES (@Name, @DurationInSeconds, @CategoryID, @ArtistID);
+END
+
+CREATE PROCEDURE usp_CreateUser
+    @Name VARCHAR(255),
+    @Surname VARCHAR(255),
+    @Username VARCHAR(255),
+    @Password VARCHAR(255),
+    @Gender VARCHAR(10)
+AS
+BEGIN
+    INSERT INTO Users (Name, Surname, Username, Password, Gender)
+    VALUES (@Name, @Surname, @Username, @Password, @Gender);
+END
+
+CREATE PROCEDURE usp_CreateCategory
+    @Name VARCHAR(255)
+AS
+BEGIN
+    INSERT INTO Categories (Name)
+    VALUES (@Name);
+END
+
+
+
+EXEC usp_CreateMusic ' mahni', 100, 1, 2;
+
+
+EXEC usp_CreateUser 'aqil', 'baxsiyev', 'aqilbaxsiyev', 'aqil12345', 'Male';
+
+EXEC usp_CreateCategory 'nostaji';
+
+
+ALTER TABLE Musics
+ADD IsDeleted BIT NOT NULL DEFAULT 0;
+
+
+
+CREATE TRIGGER tr_Musics_SoftDelete
+ON Musics
+INSTEAD OF DELETE
+AS
+BEGIN
+    UPDATE m
+    SET IsDeleted = 1
+    FROM Musics m
+    JOIN deleted d ON m.MusicID = d.MusicID;
+
+   
+    DELETE FROM Musics
+    WHERE IsDeleted = 1;
+END;
+
+
+
+CREATE FUNCTION dbo.GetUniqueArtistsListenedByUser (@UserID INT)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @UniqueArtistsCount INT;
+    
+    SELECT @UniqueArtistsCount = COUNT(DISTINCT A.ArtistID)
+    FROM Playlist_Music PM
+    JOIN Musics M ON PM.MusicID = M.MusicID
+    JOIN Artists A ON M.ArtistID = A.ArtistID
+    WHERE PM.PlaylistID IN (SELECT PlaylistID FROM Playlists WHERE UserID = @UserID);
+
+    RETURN @UniqueArtistsCount;
+END;
+
+DECLARE @UserID INT = 1;
+SELECT dbo.GetUniqueArtistsListenedByUser(@UserID) AS UniqueArtistsCount;
+
+
+
+
+
+
 
 
 
